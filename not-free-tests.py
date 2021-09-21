@@ -82,6 +82,7 @@ class TestYourWebserver(unittest.TestCase):
     # CMPUT404W19 did not have to pass to this
     def test_deep_no_end(self):
         url = self.baseurl + "/deep"
+        print('\n\n', url, '\n\n')
         expected_url = self.baseurl + "/deep/"
         try:
             req = request.urlopen(url, None, 3)
