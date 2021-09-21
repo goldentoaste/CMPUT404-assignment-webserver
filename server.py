@@ -2,6 +2,8 @@
 import socket
 import socketserver
 
+import requests
+
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,10 +37,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
         
         print ("Got a request of: %s\n" % self.data)
         self.request: socket.socket = self.request
-    
-
         
-        self.request.sendall(bytearray("OK",'utf-8'))
+        self.request.sendall(bytearray("HTTP/1.1 200 OK \n\n stuff",'utf-8'))
         
 
 if __name__ == "__main__":
@@ -51,3 +51,6 @@ if __name__ == "__main__":
     # Activate the server; this will keep running until you
     # interrupt the program with Ctrl-C
     server.serve_forever()
+
+
+
