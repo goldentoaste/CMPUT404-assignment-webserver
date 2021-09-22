@@ -6,7 +6,8 @@ from typing import List, Tuple
 import requests
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
-#
+# Copyright 2021 Ray Gong
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -37,7 +38,8 @@ wwwDir = path.join(
 )  # https://stackoverflow.com/a/5137509/12471420
 
 
-badMethods = {"CONNECT", "DELETE", "HEAD", "OPTIONS", "OPTIONS", "POST", "PUT", "TRACE"}
+badMethods = {"CONNECT", "DELETE", "HEAD",
+              "OPTIONS", "OPTIONS", "POST", "PUT", "TRACE"}
 
 
 class MyWebServer(socketserver.BaseRequestHandler):
@@ -45,56 +47,78 @@ class MyWebServer(socketserver.BaseRequestHandler):
         self.data = self.request.recv(1024).strip()
 
         print("Got a request of:")
-        print(self.data.decode(), "\n\n\n")
+        print(self.data.decode(), "\n")
         self.request: socket.socket = self.request
 
         lines = self.data.decode().split("\n")
         header = lines[0].split()  # something like Get, /, HTTP/1,1
 
         print(header, "\n")
-
+        # self.request.sendall(bytearray(f"HTTP/1.1 200 OK", "utf-8"))
+        # return
         if not header:
-            self.request.sendall(bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
+            self.request.sendall(
+                bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
 
         elif header[0] == "GET":
 
             dir = path.join(
-                wwwDir, header[1][1:].replace("\\", os.sep).replace("/", os.sep)
+                wwwDir, header[1][1:].replace(
+                    "\\", os.sep).replace("/", os.sep)
             )  # replacing slashes to work on both windows and unix systems, removing initial slash so python doesnt treat it as abs path
-      
-            if path.isdir(dir):
+            print(dir, wwwDir,  path.isfile(
+                dir), dir[-1] == os.sep and path.isfile(dir[:-1]), self.is_in_directory(dir, wwwDir))
+            if not self.is_in_directory(dir, wwwDir):
+                self.request.sendall(
+                    bytearray(
+                        f"HTTP/1.1 404 NOT FOUND\n\n ",
+                        "utf-8",
+                    ))
 
+            elif path.isdir(dir):
                 if dir[-1] == os.sep:
                     self.handleFolder(dir)
                 else:
-                    host = lines[1].split(" ")[1].strip()
+
+                    for line in lines:
+                        if line.split(' ')[0] == 'Host:':
+                            host = line.split(" ")[1].strip()
+                            break
+                    else:
+                        host = 'localhost:8080'
+
                     print(
-                        "redirect",
-                        f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\n\n ",
-                    )
+                        f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\n\n ")
                     self.request.sendall(
                         bytearray(
                             f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\n\n ",
                             "utf-8",
                         )
                     )
-
             elif path.isfile(dir):
                 self.handleFile(dir)
             elif dir[-1] == os.sep and path.isfile(dir[:-1]):
                 self.handleFile(dir[:-1])
             else:
                 self.request.sendall(
-                bytearray(
-                            f"HTTP/1.1 404 NOT FOUND\n\n ",
-                            "utf-8",
-                        ))
+                    bytearray(
+                        f"HTTP/1.1 404 NOT FOUND\n\n ",
+                        "utf-8",
+                    ))
 
         elif header[0] in badMethods:
-            self.request.sendall(bytearray(f"HTTP/1.1 405 Method Not Allowed", "utf-8"))
+            self.request.sendall(
+                bytearray(f"HTTP/1.1 405 Method Not Allowed", "utf-8"))
         else:
-            self.request.sendall(bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
-            
+            self.request.sendall(
+                bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
+
+    def is_in_directory(self, filepath, directory):
+        # https://stackoverflow.com/a/47347518/12471420
+        print('is in dir', os.path.realpath(
+            filepath), os.path.realpath(directory))
+        return os.path.realpath(filepath).startswith(
+            os.path.realpath(directory) + os.sep) or os.path.realpath(filepath) == os.path.realpath(directory)
 
     def handleFolder(self, dir: str):
         # if dir is a valid folder path
@@ -102,7 +126,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
             if item[-5:] == ".html" or item[-4:] == ".htm":
                 with open(path.join(dir, item), "r", encoding="utf-8") as f:
                     self.request.sendall(
-                        bytearray(f"HTTP/1.1 200 OK \n\n {f.read()}", "utf-8")
+                        bytearray(
+                            f"HTTP/1.1 200 OK \nContent-Type: text/html \n\n {f.read()}", "utf-8")
                     )
                 break
 
@@ -123,6 +148,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
+
+    with open('bruh', 'w') as p:
+        p.write('started')
 
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
