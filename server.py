@@ -38,13 +38,17 @@ wwwDir = path.join(
 )  # https://stackoverflow.com/a/5137509/12471420
 
 
-badMethods = {"CONNECT", "DELETE", "HEAD",
-              "OPTIONS", "OPTIONS", "POST", "PUT", "TRACE"}
+badMethods = {"CONNECT", "DELETE", "HEAD", "OPTIONS", "OPTIONS", "POST", "PUT", "TRACE"}
 
 
 class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
-        self.data = self.request.recv(1024).strip()
+        self.data = b""
+
+        while True:
+            self.data += self.request.recv(1024)
+            if self.data[-4:] == b"\r\n\r\n":
+                break
 
         print("Got a request of:")
         print(self.data.decode(), "\n")
@@ -57,23 +61,27 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # self.request.sendall(bytearray(f"HTTP/1.1 200 OK", "utf-8"))
         # return
         if not header:
-            self.request.sendall(
-                bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
+            self.request.sendall(bytearray(f"HTTP/1.1 400 Bad Request\r\n\r\n", "utf-8"))
 
         elif header[0] == "GET":
 
             dir = path.join(
-                wwwDir, header[1][1:].replace(
-                    "\\", os.sep).replace("/", os.sep)
+                wwwDir, header[1][1:].replace("\\", os.sep).replace("/", os.sep)
             )  # replacing slashes to work on both windows and unix systems, removing initial slash so python doesnt treat it as abs path
-            print(dir, wwwDir,  path.isfile(
-                dir), dir[-1] == os.sep and path.isfile(dir[:-1]), self.is_in_directory(dir, wwwDir))
+            print(
+                dir,
+                wwwDir,
+                path.isfile(dir),
+                dir[-1] == os.sep and path.isfile(dir[:-1]),
+                self.is_in_directory(dir, wwwDir),
+            )
             if not self.is_in_directory(dir, wwwDir):
                 self.request.sendall(
                     bytearray(
-                        f"HTTP/1.1 404 NOT FOUND\n\n ",
+                        f"HTTP/1.1 404 NOT FOUND\r\n\r\n ",
                         "utf-8",
-                    ))
+                    )
+                )
 
             elif path.isdir(dir):
                 if dir[-1] == os.sep:
@@ -81,17 +89,18 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 else:
 
                     for line in lines:
-                        if line.split(' ')[0] == 'Host:':
+                        if line.split(" ")[0] == "Host:":
                             host = line.split(" ")[1].strip()
                             break
                     else:
-                        host = 'localhost:8080'
+                        host = "localhost:8080"
 
                     print(
-                        f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\n\n ")
+                        f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\r\n\r\n "
+                    )
                     self.request.sendall(
                         bytearray(
-                            f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\n\n ",
+                            f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\r\n\r\n ",
                             "utf-8",
                         )
                     )
@@ -102,23 +111,22 @@ class MyWebServer(socketserver.BaseRequestHandler):
             else:
                 self.request.sendall(
                     bytearray(
-                        f"HTTP/1.1 404 NOT FOUND\n\n ",
+                        f"HTTP/1.1 404 NOT FOUND\r\n\r\n ",
                         "utf-8",
-                    ))
+                    )
+                )
 
         elif header[0] in badMethods:
-            self.request.sendall(
-                bytearray(f"HTTP/1.1 405 Method Not Allowed", "utf-8"))
+            self.request.sendall(bytearray(f"HTTP/1.1 405 Method Not Allowed", "utf-8"))
         else:
-            self.request.sendall(
-                bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
+            self.request.sendall(bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
 
     def is_in_directory(self, filepath, directory):
         # https://stackoverflow.com/a/47347518/12471420
-        print('is in dir', os.path.realpath(
-            filepath), os.path.realpath(directory))
+        print("is in dir", os.path.realpath(filepath), os.path.realpath(directory))
         return os.path.realpath(filepath).startswith(
-            os.path.realpath(directory) + os.sep) or os.path.realpath(filepath) == os.path.realpath(directory)
+            os.path.realpath(directory) + os.sep
+        ) or os.path.realpath(filepath) == os.path.realpath(directory)
 
     def handleFolder(self, dir: str):
         # if dir is a valid folder path
@@ -127,7 +135,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 with open(path.join(dir, item), "r", encoding="utf-8") as f:
                     self.request.sendall(
                         bytearray(
-                            f"HTTP/1.1 200 OK \nContent-Type: text/html \n\n {f.read()}", "utf-8")
+                            f"HTTP/1.1 200 OK \nContent-Type: text/html \r\n\r\n {f.read()}",
+                            "utf-8",
+                        )
                     )
                 break
 
@@ -138,9 +148,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 contentType = "Content-Type: text/html"
             elif dir[-4:] == ".css":
                 contentType = "Content-Type: text/css"
+            else:
+                contentType = "Content-Type: application/octet-stream"
             self.request.sendall(
                 bytearray(
-                    f"HTTP/1.1 200 OK \n{contentType if contentType is not None else ''} \n\n {f.read()}",
+                    f"HTTP/1.1 200 OK \n{contentType if contentType is not None else ''} \r\n\r\n {f.read()}",
                     "utf-8",
                 )
             )
@@ -149,8 +161,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
 
-    with open('bruh', 'w') as p:
-        p.write('started')
+    with open("bruh", "w") as p:
+        p.write("started")
 
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
