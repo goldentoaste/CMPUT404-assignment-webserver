@@ -26,7 +26,7 @@ compatible) http://docs.python.org/2/library/socketserver.html
 
 ========================
 
-Assignment by Ray Gong
+# Assignment by Ray Gong  
 With external code use:
 
 * function to check if one directory is a sub directory of another.
