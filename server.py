@@ -35,7 +35,7 @@ from os import path, replace
 
 wwwDir = path.join(
     os.path.dirname(os.path.realpath(__file__)), "www"
-)  # https://stackoverflow.com/a/5137509/12471420
+)  
 
 
 badMethods = {"CONNECT", "DELETE", "HEAD", "OPTIONS", "OPTIONS", "POST", "PUT", "TRACE"}
@@ -47,34 +47,36 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         while True:
             self.data += self.request.recv(1024)
-            if self.data[-4:] == b"\r\n\r\n":
+            # print(self.data)
+            if b"\r\n\r\n" in self.data:
                 break
 
-        print("Got a request of:")
-        print(self.data.decode(), "\n")
+        # print("Got a request of:")
+        # print(self.data.decode(), "\n")
         self.request: socket.socket = self.request
 
         lines = self.data.decode().split("\n")
         header = lines[0].split()  # something like Get, /, HTTP/1,1
 
-        print(header, "\n")
-        # self.request.sendall(bytearray(f"HTTP/1.1 200 OK", "utf-8"))
-        # return
+        # print(header, "\n")
+
         if not header:
-            self.request.sendall(bytearray(f"HTTP/1.1 400 Bad Request\r\n\r\n", "utf-8"))
+            self.request.sendall(
+                bytearray(f"HTTP/1.1 400 Bad Request\r\n\r\n", "utf-8")
+            )
 
         elif header[0] == "GET":
 
             dir = path.join(
                 wwwDir, header[1][1:].replace("\\", os.sep).replace("/", os.sep)
             )  # replacing slashes to work on both windows and unix systems, removing initial slash so python doesnt treat it as abs path
-            print(
-                dir,
-                wwwDir,
-                path.isfile(dir),
-                dir[-1] == os.sep and path.isfile(dir[:-1]),
-                self.is_in_directory(dir, wwwDir),
-            )
+            # print(
+            #     dir,
+            #     wwwDir,
+            #     path.isfile(dir),
+            #     dir[-1] == os.sep and path.isfile(dir[:-1]),
+            #     self.is_in_directory(dir, wwwDir),
+            # )
             if not self.is_in_directory(dir, wwwDir):
                 self.request.sendall(
                     bytearray(
@@ -95,9 +97,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
                     else:
                         host = "localhost:8080"
 
-                    print(
-                        f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\r\n\r\n "
-                    )
+                    # print(
+                    #     f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\r\n\r\n "
+                    # )
                     self.request.sendall(
                         bytearray(
                             f"HTTP/1.1 301 Moved Permanently \nLocation:http://{host}{header[1]}/\r\n\r\n ",
@@ -122,8 +124,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
             self.request.sendall(bytearray(f"HTTP/1.1 400 Bad Request", "utf-8"))
 
     def is_in_directory(self, filepath, directory):
+        #name: Juan A. Navarro
+        #date: nov 17, 2017
+        # license: CC BY-SA 3.0
         # https://stackoverflow.com/a/47347518/12471420
-        print("is in dir", os.path.realpath(filepath), os.path.realpath(directory))
+        # print("is in dir", os.path.realpath(filepath), os.path.realpath(directory))
         return os.path.realpath(filepath).startswith(
             os.path.realpath(directory) + os.sep
         ) or os.path.realpath(filepath) == os.path.realpath(directory)

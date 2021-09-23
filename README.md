@@ -24,3 +24,14 @@ examples thus some of the code is Copyright © 2001-2013 Python
 Software Foundation; All Rights Reserved under the PSF license (GPL
 compatible) http://docs.python.org/2/library/socketserver.html
 
+========================
+
+Assignment by Ray Gong
+With external code use:
+
+* function to check if one directory is a sub directory of another.
+name: Juan A. Navarro
+date: nov 17, 2017
+license: CC BY-SA 3.0
+https://stackoverflow.com/a/47347518/12471420
+print("is in dir", os.path.realpath(filepath), os.path.realpath(directory))
